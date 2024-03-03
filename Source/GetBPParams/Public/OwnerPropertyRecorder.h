@@ -26,4 +26,7 @@ protected:
 
 	UPROPERTY(EditInstanceOnly,Category="GetProperties")
 	FString FileName;
+
+	UFUNCTION()
+	bool CheckPropertyIsExportable(const uint64& TargetFlags);
 };

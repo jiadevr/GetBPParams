@@ -9,8 +9,6 @@
 // Sets default values for this component's properties
 UOwnerPropertyRecorder::UOwnerPropertyRecorder()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 	OutputPath = FPaths::ProjectSavedDir();
 }
@@ -27,9 +25,7 @@ void UOwnerPropertyRecorder::GetModifiedProperties()
 	OutputData.Append("+BooleanProperties:\r\n");
 	for (TFieldIterator<FBoolProperty> TargetProperty(OwnerActor->GetClass()); TargetProperty; ++TargetProperty)
 	{
-		//下边的判断可以过滤掉bReplicateUsingRegisteredSubObjectList
-		if (TargetProperty->GetPropertyFlags() & CPF_DisableEditOnInstance || !TargetProperty->GetPropertyFlags() &
-			CPF_Edit)
+		if (!CheckPropertyIsExportable(TargetProperty->GetPropertyFlags())||TargetProperty->GetMetaData("Category") == "Hidden Exposed")
 		{
 			continue;
 		}
@@ -38,7 +34,7 @@ void UOwnerPropertyRecorder::GetModifiedProperties()
 			OwnerActor->GetClass()->GetDefaultObject()));
 		if (InstanceValue != DefaultValue)
 		{
-			UE_LOG(LogTemp, Display, TEXT("Property %s Value Changed,Current Value:%s"), *TargetProperty->GetName(),
+			UE_LOG(LogTemp, Display, TEXT("Property %s Value Was Changed,Current Value:%s"), *TargetProperty->GetName(),
 			       *UKismetStringLibrary::Conv_BoolToString(InstanceValue));
 			OutputData.Append(TargetProperty->GetName()+":"+UKismetStringLibrary::Conv_BoolToString(InstanceValue)+"\r\n");
 		}
@@ -53,4 +49,14 @@ void UOwnerPropertyRecorder::GetModifiedProperties()
 	}
 	FFileHelper::SaveStringToFile(OutputData,*(OutputPath+FileName));
 	UE_LOG(LogTemp, Display, TEXT("Generate Output File Success"));
+}
+
+bool UOwnerPropertyRecorder::CheckPropertyIsExportable(const uint64& TargetFlags)
+{
+	if (TargetFlags & CPF_DisableEditOnInstance || TargetFlags & CPF_Transient || TargetFlags & CPF_EditorOnly ||
+		!TargetFlags & CPF_Edit)
+	{
+		return false;
+	}
+	return true;
 }
